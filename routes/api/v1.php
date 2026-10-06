@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::apiResource('roles', RoleController::class);
+Route::apiResource('tags', TagController::class);
 Route::apiResource('units', UnitController::class);
 
 Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
