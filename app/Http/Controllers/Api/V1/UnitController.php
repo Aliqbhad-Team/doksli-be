@@ -33,6 +33,7 @@ class UnitController extends Controller
 
     public function update(UpdateUnitRequest $request, Unit $unit): UnitResource
     {
+        $this->authorize('update', $unit);
         $unit->update($request->validated());
 
         return UnitResource::make($unit);

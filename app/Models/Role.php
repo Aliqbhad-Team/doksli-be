@@ -15,6 +15,8 @@ class Role extends Model
     /** @use HasFactory<RoleFactory> */
     use HasFactory, HasUuids;
 
+    public const UPDATED_AT = null;
+
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
