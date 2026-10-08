@@ -45,6 +45,7 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): UserResource
     {
+        $this->authorize('update', $user);
         $data = $request->validated();
 
         if (array_key_exists('password', $data)) {
@@ -58,6 +59,7 @@ class UserController extends Controller
 
     public function destroy(DestroyUserRequest $request, User $user): Response
     {
+        $this->authorize('delete', $user);
         $user->delete();
 
         return response()->noContent();
