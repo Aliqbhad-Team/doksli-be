@@ -5,10 +5,15 @@ use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\FolderController;
+use App\Http\Controllers\Api\V1\FolderPermissionController;
 
 Route::apiResource('categories', CategoryController::class);
 Route::apiResource('roles', RoleController::class);
 Route::apiResource('units', UnitController::class);
+Route::apiResource('folders', FolderController::class);
+Route::apiResource('folders', FolderController::class);
+Route::apiResource('folder-permissions', FolderPermissionController::class);
 
 Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
     Route::get('/', 'index')->name('index');
