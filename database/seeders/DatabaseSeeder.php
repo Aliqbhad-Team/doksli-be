@@ -15,10 +15,10 @@ class DatabaseSeeder extends Seeder
         $adminRole = Role::where('name', 'admin')->first();
 
         User::firstOrCreate(
-            ['email' => 'test@example.com'],
+            ['email' => 'admin@gmail.com'],
             [
-                'name' => 'Test User',
-                'password_hash' => \Illuminate\Support\Facades\Hash::make('password'),
+                'name' => 'Admin',
+                'password_hash' => \Illuminate\Support\Facades\Hash::make('admin123'),
                 'role_id' => $adminRole->id,
                 'status' => \App\Enums\UserStatus::Active,
             ]
