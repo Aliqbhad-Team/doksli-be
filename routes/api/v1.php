@@ -5,13 +5,27 @@ use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentVersionController;
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\FolderPermissionController;
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::apiResource('categories', CategoryController::class);
+// Public auth
+Route::prefix('auth')->name('auth.')->group(function () {
+    Route::post('login', [AuthController::class, 'login'])->name('login');
+    Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh');
+    Route::middleware('jwt.auth')->group(function () {
+        Route::get('me', [AuthController::class, 'me'])->name('me');
+        Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+    });
+});
+
+// Roles / Units / Users - public read/create, protected update/delete via Policy (403 for guest)
 Route::apiResource('roles', RoleController::class);
+Route::apiResource('tags', TagController::class);
 Route::apiResource('units', UnitController::class);
 Route::apiResource('folders', FolderController::class);
 Route::apiResource('folder-permissions', FolderPermissionController::class);

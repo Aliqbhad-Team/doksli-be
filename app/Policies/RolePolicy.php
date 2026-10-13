@@ -7,14 +7,9 @@ use App\Models\User;
 
 class RolePolicy
 {
-    // Placeholder: any authenticated user may modify a role until real permissions exist.
-    public function update(User $user, Role $role): bool
-    {
-        return true;
-    }
-
-    public function delete(User $user, Role $role): bool
-    {
-        return true;
-    }
+    public function viewAny(?User $user): bool { return true; }
+    public function view(?User $user, Role $role): bool { return true; }
+    public function create(?User $user): bool { return true; }
+    public function update(User $user, Role $role): bool { return true; }
+    public function delete(User $user, Role $role): bool { return true; }
 }

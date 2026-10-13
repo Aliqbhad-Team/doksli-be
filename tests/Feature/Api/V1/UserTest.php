@@ -14,26 +14,41 @@ class UserTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function admin(): User
+    {
+        $role = Role::firstOrCreate(['name' => 'admin'], ['description' => 'Administrator']);
+        return User::factory()->create(['role_id' => $role->id]);
+    }
+
+    private function staffRole(): Role
+    {
+        return Role::firstOrCreate(['name' => 'staff'], ['description' => 'Staff']);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
     private function payload(array $overrides = []): array
     {
+        // default role non-admin biar lolos aturan singleton admin
+        $roleId = $overrides['role_id'] ?? $this->staffRole()->id;
+        unset($overrides['role_id']);
         return array_merge([
             'name' => 'Budi Santoso',
             'email' => 'budi@example.com',
             'password' => 'secret-password',
-            'role_id' => Role::factory()->create()->id,
+            'role_id' => $roleId,
         ], $overrides);
     }
 
     public function test_it_creates_a_user(): void
     {
+        $admin = $this->admin();
         $unit = Unit::factory()->create();
         $payload = $this->payload(['unit_id' => $unit->id]);
 
-        $response = $this->postJson('/api/v1/users', $payload);
+        $response = $this->actingAs($admin)->postJson('/api/v1/users', $payload);
 
         $response->assertCreated()
             ->assertJsonPath('data.name', 'Budi Santoso')
@@ -50,7 +65,8 @@ class UserTest extends TestCase
 
     public function test_it_normalizes_email_and_accepts_explicit_status(): void
     {
-        $this->postJson('/api/v1/users', $this->payload(['email' => '  Budi@Example.COM ', 'status' => 'suspended']))
+        $admin = $this->admin();
+        $this->actingAs($admin)->postJson('/api/v1/users', $this->payload(['email' => '  Budi@Example.COM ', 'status' => 'suspended']))
             ->assertCreated()
             ->assertJsonPath('data.email', 'budi@example.com')
             ->assertJsonPath('data.status', 'suspended')
@@ -59,11 +75,12 @@ class UserTest extends TestCase
 
     public function test_it_rejects_invalid_input(): void
     {
-        $this->postJson('/api/v1/users', [])
+        $admin = $this->admin();
+        $this->actingAs($admin)->postJson('/api/v1/users', [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['name', 'email', 'password', 'role_id']);
 
-        $this->postJson('/api/v1/users', $this->payload([
+        $this->actingAs($admin)->postJson('/api/v1/users', $this->payload([
             'role_id' => '00000000-0000-7000-8000-000000000000',
             'unit_id' => '00000000-0000-7000-8000-000000000000',
             'password' => 'short',
@@ -75,9 +92,10 @@ class UserTest extends TestCase
 
     public function test_it_rejects_a_duplicate_email(): void
     {
+        $admin = $this->admin();
         User::factory()->create(['email' => 'budi@example.com']);
 
-        $this->postJson('/api/v1/users', $this->payload(['email' => 'BUDI@example.com']))
+        $this->actingAs($admin)->postJson('/api/v1/users', $this->payload(['email' => 'BUDI@example.com']))
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['email']);
     }
@@ -110,10 +128,10 @@ class UserTest extends TestCase
 
     public function test_an_authenticated_user_can_partially_update_a_user(): void
     {
-        $actor = User::factory()->create();
-        $target = User::factory()->create(['name' => 'Lama']);
+        $admin = $this->admin();
+        $target = User::factory()->create(['name' => 'Lama', 'role_id' => $this->staffRole()->id]);
 
-        $this->actingAs($actor)
+        $this->actingAs($admin)
             ->patchJson("/api/v1/users/{$target->id}", ['name' => 'Baru', 'status' => 'suspended'])
             ->assertOk()
             ->assertJsonPath('data.name', 'Baru')
@@ -124,9 +142,10 @@ class UserTest extends TestCase
     public function test_update_can_change_password_and_clear_unit(): void
     {
         $unit = Unit::factory()->create();
-        $target = User::factory()->create(['unit_id' => $unit->id]);
+        $target = User::factory()->create(['unit_id' => $unit->id, 'role_id' => $this->staffRole()->id]);
+        $admin = $this->admin();
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($admin)
             ->patchJson("/api/v1/users/{$target->id}", ['password' => 'new-password-1', 'unit_id' => null])
             ->assertOk()
             ->assertJsonPath('data.unit_id', null);
@@ -136,15 +155,15 @@ class UserTest extends TestCase
 
     public function test_update_allows_own_email_but_rejects_anothers(): void
     {
-        $actor = User::factory()->create();
-        $target = User::factory()->create(['email' => 'target@example.com']);
+        $admin = $this->admin();
+        $target = User::factory()->create(['email' => 'target@example.com', 'role_id' => $this->staffRole()->id]);
         $other = User::factory()->create(['email' => 'other@example.com']);
 
-        $this->actingAs($actor)
+        $this->actingAs($admin)
             ->patchJson("/api/v1/users/{$target->id}", ['email' => 'Target@Example.com'])
             ->assertOk();
 
-        $this->actingAs($actor)
+        $this->actingAs($admin)
             ->patchJson("/api/v1/users/{$target->id}", ['email' => $other->email])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['email']);
@@ -162,12 +181,31 @@ class UserTest extends TestCase
 
     public function test_an_authenticated_user_can_delete_a_user(): void
     {
-        $target = User::factory()->create();
+        $admin = $this->admin();
+        $target = User::factory()->create(['role_id' => $this->staffRole()->id]);
 
-        $this->actingAs(User::factory()->create())
+        $this->actingAs($admin)
             ->deleteJson("/api/v1/users/{$target->id}")
             ->assertNoContent();
 
         $this->assertDatabaseMissing('users', ['id' => $target->id]);
+    }
+
+    public function test_non_admin_cannot_create_user(): void
+    {
+        $staff = User::factory()->create(['role_id' => $this->staffRole()->id]);
+
+        $this->actingAs($staff)->postJson('/api/v1/users', $this->payload())
+            ->assertForbidden();
+    }
+
+    public function test_admin_cannot_create_admin_user(): void
+    {
+        $admin = $this->admin();
+        $adminRole = Role::where('name', 'admin')->firstOrFail();
+
+        $this->actingAs($admin)->postJson('/api/v1/users', $this->payload(['role_id' => $adminRole->id]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['role_id']);
     }
 }

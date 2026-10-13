@@ -33,6 +33,7 @@ class RoleController extends Controller
 
     public function update(UpdateRoleRequest $request, Role $role): RoleResource
     {
+        $this->authorize('update', $role);
         $role->update($request->validated());
 
         return RoleResource::make($role);
@@ -40,6 +41,7 @@ class RoleController extends Controller
 
     public function destroy(DestroyRoleRequest $request, Role $role): Response
     {
+        $this->authorize('delete', $role);
         abort_if($role->users()->exists(), 409, 'Role masih dipakai oleh user.');
 
         $role->delete();
