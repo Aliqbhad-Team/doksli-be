@@ -4,7 +4,9 @@ use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\CategoryController;
 
+Route::apiResource('categories', CategoryController::class);
 Route::apiResource('roles', RoleController::class);
 Route::apiResource('units', UnitController::class);
 
