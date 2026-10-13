@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,7 @@ Route::prefix('auth')->name('auth.')->group(function () {
 
 // Roles / Units / Users - public read/create, protected update/delete via Policy (403 for guest)
 Route::apiResource('roles', RoleController::class);
+Route::apiResource('tags', TagController::class);
 Route::apiResource('units', UnitController::class);
 Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
     Route::get('/', 'index')->name('index');
