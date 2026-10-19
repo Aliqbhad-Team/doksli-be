@@ -1,11 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentVersionController;
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\FolderPermissionController;
-use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\UnitController;
@@ -23,14 +23,18 @@ Route::prefix('auth')->name('auth.')->group(function () {
     });
 });
 
+// Protected via JWT Auth
+Route::middleware('jwt.auth')->group(function () {
+    Route::apiResource('tags', TagController::class);
+    Route::apiResource('documents', DocumentController::class);
+    Route::apiResource('document-versions', DocumentVersionController::class);
+});
+
 // Roles / Units / Users - public read/create, protected update/delete via Policy (403 for guest)
 Route::apiResource('roles', RoleController::class);
-Route::apiResource('tags', TagController::class);
 Route::apiResource('units', UnitController::class);
 Route::apiResource('folders', FolderController::class);
 Route::apiResource('folder-permissions', FolderPermissionController::class);
-Route::apiResource('documents', DocumentController::class);
-Route::apiResource('document-versions', DocumentVersionController::class);
 
 Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
     Route::get('/', 'index')->name('index');

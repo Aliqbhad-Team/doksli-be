@@ -50,6 +50,7 @@ class DocumentController extends Controller
     public function store(StoreDocumentRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $data['owner_id'] = $data['owner_id'] ?? $request->user()?->id;
 
         if (isset($data['status'])) {
             if ($data['status'] === DocumentStatus::Trashed->value || $data['status'] === DocumentStatus::Trashed) {
