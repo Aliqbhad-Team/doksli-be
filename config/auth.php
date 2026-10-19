@@ -42,7 +42,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+<<<<<<< HEAD
 
+=======
+>>>>>>> 15498a5f5972dcf0e577621a769a65ce07a51087
         'api' => [
             'driver' => 'jwt',
             'provider' => 'users',

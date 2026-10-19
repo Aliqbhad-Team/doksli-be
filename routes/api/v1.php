@@ -1,30 +1,49 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\DocumentController;
+use App\Http\Controllers\Api\V1\DocumentVersionController;
+use App\Http\Controllers\Api\V1\FolderController;
+use App\Http\Controllers\Api\V1\FolderPermissionController;
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\CategoryController;
-use App\Http\Controllers\Api\V1\FolderController;
-use App\Http\Controllers\Api\V1\FolderPermissionController;
 
-// Semua route di dalam group ini sekarang diwajibkan menyertakan Token JWT
-Route::middleware('auth:api')->group(function () {
+// Public auth
+Route::prefix('auth')->name('auth.')->group(function () {
+    Route::post('login', [AuthController::class, 'login'])->name('login');
+    Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh');
     
-    Route::apiResource('categories', CategoryController::class);
-    Route::apiResource('roles', RoleController::class);
-    Route::apiResource('units', UnitController::class);
-    
+    Route::middleware('jwt.auth')->group(function () {
+        Route::get('me', [AuthController::class, 'me'])->name('me');
+        Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+    });
+});
+
+Route::apiResource('categories', CategoryController::class);
+
+// Roles / Units / Users - public read/create, protected update/delete via Policy
+Route::apiResource('roles', RoleController::class);
+Route::apiResource('tags', TagController::class);
+Route::apiResource('units', UnitController::class);
+
+// Folder Management
+Route::middleware('jwt.auth')->group(function () {
     Route::apiResource('folders', FolderController::class);
     Route::apiResource('folder-permissions', FolderPermissionController::class);
+});
 
-    // Modul User
-    Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::post('/', 'store')->name('store');
-        Route::get('{user}', 'show')->name('show');
-        Route::match(['put', 'patch'], '{user}', 'update')->name('update');
-        Route::delete('{user}', 'destroy')->name('destroy');
-    });
-    
+Route::apiResource('documents', DocumentController::class);
+Route::apiResource('document-versions', DocumentVersionController::class);
+
+// Modul User
+Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::post('/', 'store')->name('store');
+    Route::get('{user}', 'show')->name('show');
+    Route::match(['put', 'patch'], '{user}', 'update')->name('update');
+    Route::delete('{user}', 'destroy')->name('destroy');
 });
