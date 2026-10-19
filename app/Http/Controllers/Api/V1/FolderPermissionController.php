@@ -41,7 +41,6 @@ class FolderPermissionController extends Controller
 
     public function update(UpdateFolderPermissionRequest $request, FolderPermission $folderPermission)
     {
-        // Pastikan authorize() di UpdateFolderPermissionRequest sudah diubah jadi true
         $folderPermission->update($request->validated());
         return FolderPermissionResource::make($folderPermission);
     }
