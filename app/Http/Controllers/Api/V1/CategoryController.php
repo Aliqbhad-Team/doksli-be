@@ -34,6 +34,11 @@ class CategoryController extends Controller
         return CategoryResource::make($category)->response()->setStatusCode(201);
     }
 
+    public function show(Category $category): CategoryResource
+    {
+        return CategoryResource::make($category);
+    }
+
     public function update(UpdateCategoryRequest $request, Category $category): CategoryResource
     {
         $data = $request->validated();

@@ -34,11 +34,13 @@ Route::middleware('jwt.auth')->group(function () {
         'groups' => GroupController::class,
         'tags' => TagController::class,
         'documents' => DocumentController::class,
-        'document-versions' => DocumentVersionController::class,
         'folders' => FolderController::class,
         'folder-permissions' => FolderPermissionController::class,
         'users' => UserController::class,
     ]);
+
+    // Document versions are immutable
+    Route::apiResource('document-versions', DocumentVersionController::class)->except('update');
 
     // User <-> Group pivot
     Route::controller(UserGroupController::class)->group(function () {
