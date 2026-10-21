@@ -6,10 +6,13 @@ use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentVersionController;
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\FolderPermissionController;
+use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\GroupController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\UnitController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\V1\UserGroupController;
 use Illuminate\Support\Facades\Route;
 
 Route::apiResource('categories', CategoryController::class);
@@ -33,13 +36,26 @@ Route::middleware('jwt.auth')->group(function () {
 // Roles / Units / Users - public read/create, protected update/delete via Policy (403 for guest)
 Route::apiResource('roles', RoleController::class);
 Route::apiResource('units', UnitController::class);
+Route::apiResource('groups', GroupController::class);
 Route::apiResource('folders', FolderController::class);
 Route::apiResource('folder-permissions', FolderPermissionController::class);
 
-Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
-    Route::get('/', 'index')->name('index');
-    Route::post('/', 'store')->name('store');
-    Route::get('{user}', 'show')->name('show');
-    Route::match(['put', 'patch'], '{user}', 'update')->name('update');
-    Route::delete('{user}', 'destroy')->name('destroy');
+// Users - protected by jwt.auth, authorize via StoreUserRequest + Policy
+Route::middleware('jwt.auth')->group(function () {
+    Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('{user}', 'show')->name('show');
+        Route::match(['put', 'patch'], '{user}', 'update')->name('update');
+        Route::delete('{user}', 'destroy')->name('destroy');
+    });
+
+    // User <-> Groups pivot - protected
+    Route::controller(UserGroupController::class)->group(function () {
+        Route::get('users/{user}/groups', 'indexByUser')->name('users.groups.index');
+        Route::post('users/{user}/groups', 'store')->name('users.groups.store');
+        Route::delete('users/{user}/groups/{group}', 'destroy')->name('users.groups.destroy');
+        Route::delete('users/{user}/groups', 'destroyMany')->name('users.groups.destroyMany');
+        Route::get('groups/{group}/users', 'indexByGroup')->name('groups.users.index');
+    });
 });
