@@ -15,17 +15,20 @@ use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserGroupController;
 use Illuminate\Support\Facades\Route;
 
-Route::apiResource('categories', CategoryController::class);
 // Public auth
 Route::prefix('auth')->name('auth.')->group(function () {
     Route::post('login', [AuthController::class, 'login'])->name('login');
     Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh');
+    
     Route::middleware('jwt.auth')->group(function () {
         Route::get('me', [AuthController::class, 'me'])->name('me');
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
     });
 });
 
+Route::apiResource('categories', CategoryController::class);
+
+// Roles / Units / Users - public read/create, protected update/delete via Policy
 // Protected via JWT Auth
 Route::middleware('jwt.auth')->group(function () {
     Route::apiResource('tags', TagController::class);
@@ -36,6 +39,24 @@ Route::middleware('jwt.auth')->group(function () {
 // Roles / Units / Users - public read/create, protected update/delete via Policy (403 for guest)
 Route::apiResource('roles', RoleController::class);
 Route::apiResource('units', UnitController::class);
+
+// Folder Management
+Route::middleware('jwt.auth')->group(function () {
+    Route::apiResource('folders', FolderController::class);
+    Route::apiResource('folder-permissions', FolderPermissionController::class);
+});
+
+Route::apiResource('documents', DocumentController::class);
+Route::apiResource('document-versions', DocumentVersionController::class);
+
+// Modul User
+Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::post('/', 'store')->name('store');
+    Route::get('{user}', 'show')->name('show');
+    Route::match(['put', 'patch'], '{user}', 'update')->name('update');
+    Route::delete('{user}', 'destroy')->name('destroy');
+});
 Route::apiResource('groups', GroupController::class);
 Route::apiResource('folders', FolderController::class);
 Route::apiResource('folder-permissions', FolderPermissionController::class);
