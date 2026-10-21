@@ -18,21 +18,29 @@ class FolderPermissionController extends Controller
     }
 
     public function store(StoreFolderPermissionRequest $request)
-    {
-        $data = $request->validated();
-        
-        // Buat UUID otomatis dan set waktu
-        $data['id'] = Str::uuid()->toString();
-        $data['granted_at'] = now();
-        
-        // Gunakan akun user pertama untuk mengisi foreign key 'granted_by'
-        $user = User::first();
-        $data['granted_by'] = $user ? $user->id : Str::uuid()->toString();
+{
+    // Ambil data yang sudah divalidasi
+    $data = $request->validated();
 
-        $permission = FolderPermission::create($data);
+    // 1. Ambil ID user yang sedang login via JWT
+    $user = $request->user();
 
-        return FolderPermissionResource::make($permission)->response()->setStatusCode(201);
+    // 2. Jika tidak ada user yang login (unauthorized), tolak requestnya
+    if (!$user) {
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
+
+    // 3. Otomatis isi granted_by dengan ID user yang sedang login
+    $data['granted_by'] = $user->id;
+    
+    // (granted_at tidak perlu diset manual karena di migration sudah pakai useCurrent())
+
+    // 4. Simpan ke database
+    $permission = FolderPermission::create($data);
+
+    // 5. Kembalikan response sukses
+    return FolderPermissionResource::make($permission)->response()->setStatusCode(201);
+}
 
     public function show(FolderPermission $folderPermission)
     {
