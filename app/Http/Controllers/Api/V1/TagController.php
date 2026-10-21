@@ -21,7 +21,10 @@ class TagController extends Controller
 
     public function store(StoreTagRequest $request): JsonResponse
     {
-        $tag = Tag::create($request->validated());
+        $data = $request->validated();
+        $data['created_by'] = $data['created_by'] ?? ($request->user()?->name ?? $request->user()?->id);
+
+        $tag = Tag::create($data);
 
         return TagResource::make($tag)->response()->setStatusCode(201);
     }
@@ -33,7 +36,10 @@ class TagController extends Controller
 
     public function update(UpdateTagRequest $request, Tag $tag): TagResource
     {
-        $tag->update($request->validated());
+        $data = $request->validated();
+        $data['updated_by'] = $data['updated_by'] ?? ($request->user()?->name ?? $request->user()?->id);
+
+        $tag->update($data);
 
         return TagResource::make($tag);
     }

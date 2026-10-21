@@ -22,7 +22,7 @@ class StoreDocumentRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'folder_id' => ['required', 'uuid', Rule::exists('folders', 'id')],
             'category_id' => ['required', 'string', Rule::exists('categories', 'id')],
-            'owner_id' => ['required', 'uuid', Rule::exists('users', 'id')],
+            'owner_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'id')],
             'status' => ['sometimes', Rule::enum(DocumentStatus::class)],
             'deleted_at' => ['sometimes', 'nullable', 'date'],
         ];

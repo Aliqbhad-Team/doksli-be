@@ -8,7 +8,7 @@ class DestroyDocumentVersionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('delete', $this->route('document_version')) ?? false;
     }
 
     /**
