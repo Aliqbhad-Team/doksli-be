@@ -25,7 +25,7 @@ class StoreDocumentVersionRequest extends FormRequest
             'checksum' => ['required_without:file', 'nullable', 'string', 'size:64'],
             'size_bytes' => ['required_without:file', 'nullable', 'integer', 'min:0'],
             'note' => ['nullable', 'string', 'max:255'],
-            'uploaded_by' => ['required', 'uuid', Rule::exists('users', 'id')],
+            'uploaded_by' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'id')],
         ];
     }
 }

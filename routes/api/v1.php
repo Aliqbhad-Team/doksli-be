@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentVersionController;
@@ -25,15 +26,19 @@ Route::prefix('auth')->name('auth.')->group(function () {
     });
 });
 
-// Roles / Units / Groups - public read/create, protected update/delete via Policy
+// Protected via JWT Auth
+Route::middleware('jwt.auth')->group(function () {
+    Route::apiResource('tags', TagController::class);
+    Route::apiResource('documents', DocumentController::class);
+    Route::apiResource('document-versions', DocumentVersionController::class);
+});
+
+// Roles / Units / Users - public read/create, protected update/delete via Policy (403 for guest)
 Route::apiResource('roles', RoleController::class);
-Route::apiResource('tags', TagController::class);
 Route::apiResource('units', UnitController::class);
 Route::apiResource('groups', GroupController::class);
 Route::apiResource('folders', FolderController::class);
 Route::apiResource('folder-permissions', FolderPermissionController::class);
-Route::apiResource('documents', DocumentController::class);
-Route::apiResource('document-versions', DocumentVersionController::class);
 
 // Users - protected by jwt.auth, authorize via StoreUserRequest + Policy
 Route::middleware('jwt.auth')->group(function () {
