@@ -6,14 +6,14 @@ use App\Auth\JwtGuard;
 use App\Services\JwtService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
+use App\Models\Folder;
+use App\Observers\FolderObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
     }
-
     public function boot(): void
     {
         Auth::extend('jwt', function ($app, $name, array $config) {
@@ -23,5 +23,6 @@ class AppServiceProvider extends ServiceProvider
 
             return new JwtGuard($provider, $request, $jwt);
         });
+        Folder::observe(FolderObserver::class);
     }
 }
