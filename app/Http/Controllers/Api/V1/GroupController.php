@@ -16,7 +16,12 @@ class GroupController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        return GroupResource::collection(Group::query()->orderBy('name')->paginate(25));
+        return GroupResource::collection(
+            Group::query()
+                ->withCount('users')
+                ->orderBy('name')
+                ->paginate(50)
+        );
     }
 
     public function store(StoreGroupRequest $request): JsonResponse
@@ -33,7 +38,6 @@ class GroupController extends Controller
 
     public function update(UpdateGroupRequest $request, Group $group): GroupResource
     {
-        $this->authorize('update', $group);
         $group->update($request->validated());
 
         return GroupResource::make($group);
@@ -41,6 +45,7 @@ class GroupController extends Controller
 
     public function destroy(DestroyGroupRequest $request, Group $group): Response
     {
+        $group->users()->detach();
         $group->delete();
 
         return response()->noContent();
