@@ -35,6 +35,7 @@ class DocumentVersionController extends Controller
     public function store(StoreDocumentVersionRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $data['uploaded_by'] = $data['uploaded_by'] ?? $request->user()?->id;
         $documentId = $data['document_id'];
 
         // Auto-increment version_number if not provided

@@ -2,28 +2,21 @@
 
 namespace App\Http\Requests\FolderPermission;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateFolderPermissionRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return false;
+        return true; 
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            //
+            // Hanya izinkan update pada kolom level dengan pilihan yang valid
+            'level' => ['required', 'string', Rule::in(['view', 'download', 'edit', 'manage'])],
         ];
     }
 }

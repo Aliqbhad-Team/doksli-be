@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Services\AuditService;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
 use App\Models\User;
@@ -18,20 +20,23 @@ class FolderController extends Controller
         return FolderResource::collection(Folder::all());
     }
 
-    // CREATE: Menambah folder baru (sudah berfungsi)
+    // CREATE: Menambah folder baru 
     public function store(StoreFolderRequest $request)
     {
-        $data = $request->validated();
-        
-        $data['id'] = Str::uuid()->toString();
-        $data['created_at'] = now();
-        
-        $user = User::first();
-        $data['created_by'] = $user ? $user->id : Str::uuid()->toString();
+    $data = $request->validated();
+    $data['id'] = Str::uuid()->toString();
+    $data['created_at'] = now();
+    
+    // JWT mendeteksi siapa yang sedang login
+    $data['created_by'] = Auth::id(); 
 
-        $folder = Folder::create($data);
+    // Simpan folder ke database
+    $folder = Folder::create($data);
 
-        return FolderResource::make($folder)->response()->setStatusCode(201);
+    // Panggil CCTV AuditService untuk merekam aktivitas
+    AuditService::log('CREATE', 'Folder', $folder->id);
+
+    return FolderResource::make($folder)->response()->setStatusCode(201);
     }
 
     // READ: Menampilkan satu folder spesifik

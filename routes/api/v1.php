@@ -1,11 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentVersionController;
 use App\Http\Controllers\Api\V1\FolderController;
 use App\Http\Controllers\Api\V1\FolderPermissionController;
-use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GroupController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\TagController;
@@ -33,9 +33,6 @@ Route::get('units', [UnitController::class, 'index'])->name('units.index');
 Route::get('units/{unit}', [UnitController::class, 'show'])->name('units.show');
 Route::get('groups', [GroupController::class, 'index'])->name('groups.index');
 Route::get('groups/{group}', [GroupController::class, 'show'])->name('groups.show');
-Route::apiResource('folders', FolderController::class);
-Route::apiResource('folder-permissions', FolderPermissionController::class);
-Route::apiResource('documents', DocumentController::class);
 Route::apiResource('document-versions', DocumentVersionController::class);
 
 // Protected routes by jwt.auth
@@ -54,6 +51,18 @@ Route::middleware('jwt.auth')->group(function () {
     Route::post('groups', [GroupController::class, 'store'])->name('groups.store');
     Route::match(['put', 'patch'], 'groups/{group}', [GroupController::class, 'update'])->name('groups.update');
     Route::delete('groups/{group}', [GroupController::class, 'destroy'])->name('groups.destroy');
+  
+   Route::apiResources([
+        'categories' => CategoryController::class,
+        'roles' => RoleController::class,
+        'units' => UnitController::class,
+        'groups' => GroupController::class,
+        'tags' => TagController::class,
+        'documents' => DocumentController::class,
+        'folders' => FolderController::class,
+        'folder-permissions' => FolderPermissionController::class,
+        'users' => UserController::class,
+    ]);
 
     // Users
     Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
@@ -68,8 +77,8 @@ Route::middleware('jwt.auth')->group(function () {
     Route::controller(UserGroupController::class)->group(function () {
         Route::get('users/{user}/groups', 'indexByUser')->name('users.groups.index');
         Route::post('users/{user}/groups', 'store')->name('users.groups.store');
-        Route::delete('users/{user}/groups/{group}', 'destroy')->name('users.groups.destroy');
         Route::delete('users/{user}/groups', 'destroyMany')->name('users.groups.destroyMany');
+        Route::delete('users/{user}/groups/{group}', 'destroy')->name('users.groups.destroy');
         Route::get('groups/{group}/users', 'indexByGroup')->name('groups.users.index');
     });
 });
