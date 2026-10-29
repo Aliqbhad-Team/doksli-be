@@ -11,5 +11,8 @@ class DestroyGroupRequest extends FormRequest
         return $this->user()?->can('delete', $this->route('group')) ?? false;
     }
 
-    public function rules(): array { return []; }
+    public function rules(): array
+    {
+        return [];
+    }
 }

@@ -17,17 +17,16 @@ class CategoryController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        return CategoryResource::collection(Category::query()->orderBy('name')->paginate(25));
+        return CategoryResource::collection(Category::query()->orderBy('name')->paginate(50));
     }
 
     public function store(StoreCategoryRequest $request): JsonResponse
     {
         $data = $request->validated();
         
-        // Generate UUID dan catat data pembuatan
         $data['id'] = Str::uuid()->toString();
         $data['created_dt'] = now();
-        $data['created_by'] = 'system';
+        $data['created_by'] = $request->user()?->name ?? 'Admin';
         
         $category = Category::create($data);
 
@@ -43,9 +42,8 @@ class CategoryController extends Controller
     {
         $data = $request->validated();
         
-        // Catat data perubahan
         $data['updated_dt'] = now();
-        $data['updated_by'] = 'system';
+        $data['updated_by'] = $request->user()?->name ?? 'Admin';
         
         $category->update($data);
 
