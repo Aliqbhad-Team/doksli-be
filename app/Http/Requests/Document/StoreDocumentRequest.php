@@ -25,6 +25,9 @@ class StoreDocumentRequest extends FormRequest
             'owner_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'id')],
             'status' => ['sometimes', Rule::enum(DocumentStatus::class)],
             'deleted_at' => ['sometimes', 'nullable', 'date'],
+            'tags' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'file' => ['sometimes', 'nullable', 'file'],
+            'note' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 }

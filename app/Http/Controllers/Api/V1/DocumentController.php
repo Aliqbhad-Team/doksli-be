@@ -9,6 +9,8 @@ use App\Http\Requests\Document\StoreDocumentRequest;
 use App\Http\Requests\Document\UpdateDocumentRequest;
 use App\Http\Resources\Api\V1\DocumentResource;
 use App\Models\Document;
+use App\Models\DocumentVersion;
+use App\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -19,7 +21,7 @@ class DocumentController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = Document::query()
-            ->with(['folder', 'category', 'owner', 'latestVersion']);
+            ->with(['folder', 'category', 'owner', 'latestVersion', 'tags']);
 
         if ($request->filled('folder_id')) {
             $query->where('folder_id', $request->query('folder_id'));
@@ -60,17 +62,46 @@ class DocumentController extends Controller
             }
         }
 
+        // Ambil tags & file sebelum create document
+        $tagsInput = $data['tags'] ?? null;
+        $file = $request->file('file');
+        $note = $data['note'] ?? null;
+        unset($data['tags'], $data['file'], $data['note']);
+
         $document = Document::create($data);
 
-        return DocumentResource::make($document->load(['folder', 'category', 'owner']))
-            ->response()
-            ->setStatusCode(201);
+        // Sync tags (koma-separated → auto-create jika belum ada)
+        if ($tagsInput) {
+            $tagIds = $this->syncTags($tagsInput, $request->user()?->name);
+            $document->tags()->sync($tagIds);
+        }
+
+        // Jika ada file, buat document_version pertama
+        if ($file) {
+            $checksum = hash_file('sha256', $file->getRealPath());
+            $sizeBytes = $file->getSize();
+            $path = $file->store('documents/' . $document->id);
+
+            DocumentVersion::create([
+                'document_id' => $document->id,
+                'version_number' => 1,
+                'file_url' => $path,
+                'checksum' => $checksum,
+                'size_bytes' => $sizeBytes,
+                'note' => $note ?? 'Unggahan awal',
+                'uploaded_by' => $request->user()?->id,
+            ]);
+        }
+
+        return DocumentResource::make(
+            $document->load(['folder', 'category', 'owner', 'tags', 'latestVersion'])
+        )->response()->setStatusCode(201);
     }
 
     public function show(Document $document): DocumentResource
     {
         return DocumentResource::make(
-            $document->load(['folder', 'category', 'owner', 'latestVersion', 'versions.uploader'])
+            $document->load(['folder', 'category', 'owner', 'latestVersion', 'versions.uploader', 'tags'])
         );
     }
 
@@ -86,9 +117,18 @@ class DocumentController extends Controller
             }
         }
 
+        // Handle tags jika dikirim
+        $tagsInput = $data['tags'] ?? null;
+        unset($data['tags']);
+
         $document->update($data);
 
-        return DocumentResource::make($document->load(['folder', 'category', 'owner']));
+        if ($tagsInput !== null) {
+            $tagIds = $this->syncTags($tagsInput, $request->user()?->name);
+            $document->tags()->sync($tagIds);
+        }
+
+        return DocumentResource::make($document->load(['folder', 'category', 'owner', 'tags']));
     }
 
     public function destroy(DestroyDocumentRequest $request, Document $document): Response
@@ -96,5 +136,31 @@ class DocumentController extends Controller
         $document->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * Parse koma-separated tags, auto-create jika belum ada di DB.
+     *
+     * @return array<string> tag IDs
+     */
+    private function syncTags(string $tagsInput, ?string $userName = null): array
+    {
+        $tagNames = array_filter(
+            array_map('trim', explode(',', $tagsInput))
+        );
+
+        $tagIds = [];
+        foreach ($tagNames as $name) {
+            $tag = Tag::firstOrCreate(
+                ['name' => $name],
+                [
+                    'created_by' => $userName,
+                    'updated_by' => $userName,
+                ]
+            );
+            $tagIds[] = $tag->id;
+        }
+
+        return $tagIds;
     }
 }
