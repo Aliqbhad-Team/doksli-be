@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Services\AuditService;
 use App\Services\FolderService;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
@@ -28,18 +27,21 @@ class FolderController extends Controller
     public function store(StoreFolderRequest $request)
     {
         $data = $request->validated();
-        $user = Auth::user(); // Dapatkan data user yang sedang login
+        $user = Auth::user(); 
+        
+        // Pengecekan role yang lebih aman (mendukung string 'Admin' atau relasi object)
+        $isAdmin = (isset($user->role->name) && $user->role->name === 'Admin') || $user->role === 'Admin';
     
-        if ($user->role === 'Admin') {
+        if ($isAdmin) {
+            // Admin: wajib pilih unit_id
             if (empty($data['unit_id'])) {
                 return response()->json([
                     'message' => 'The given data was invalid.',
-                    'errors' => ['unit_id' => ['Folder tidak bisa dibuat tanpa unit_id untuk Admin.']]
+                    'errors'  => ['unit_id' => ['Folder tidak bisa dibuat tanpa unit_id untuk Admin.']]
                 ], 422);
             }
         } else {
-            // Pengelola: unit_id otomatis = unit Pengelola
-            // Mengabaikan (override) unit_id yang mungkin sengaja dikirim via request API
+            // Pengelola: unit_id otomatis = unit Pengelola (override)
             $data['unit_id'] = $user->unit_id; 
             
             // Validasi darurat jika data unit user ternyata kosong di database
@@ -49,17 +51,12 @@ class FolderController extends Controller
                 ], 403);
             }
         }
-        // --------------------------------------------------------
 
+        // Siapkan data tambahan
         $data['id'] = Str::uuid()->toString();
-        $data['created_at'] = now();
-        $data['created_by'] = $user->id; 
+        $data['created_by'] = $user->id;
 
-        // Simpan folder ke database
         $folder = Folder::create($data);
-
-        // Panggil CCTV AuditService untuk merekam aktivitas
-        AuditService::log('CREATE', 'Folder', $folder->id);
 
         return FolderResource::make($folder)->response()->setStatusCode(201);
     }
