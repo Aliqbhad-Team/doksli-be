@@ -28,6 +28,7 @@ class DocumentResource extends JsonResource
             'folder' => FolderResource::make($this->whenLoaded('folder')),
             'category' => CategoryResource::make($this->whenLoaded('category')),
             'owner' => UserResource::make($this->whenLoaded('owner')),
+            'tags' => TagResource::collection($this->whenLoaded('tags')),
             'latest_version' => DocumentVersionResource::make($this->whenLoaded('latestVersion')),
             'versions' => DocumentVersionResource::collection($this->whenLoaded('versions')),
         ];
