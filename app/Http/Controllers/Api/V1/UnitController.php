@@ -16,7 +16,12 @@ class UnitController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        return UnitResource::collection(Unit::query()->orderBy('name')->paginate(25));
+        return UnitResource::collection(
+            Unit::query()
+                ->withCount('users')
+                ->orderBy('name')
+                ->paginate(50)
+        );
     }
 
     public function store(StoreUnitRequest $request): JsonResponse
@@ -33,14 +38,19 @@ class UnitController extends Controller
 
     public function update(UpdateUnitRequest $request, Unit $unit): UnitResource
     {
-        $this->authorize('update', $unit);
         $unit->update($request->validated());
 
         return UnitResource::make($unit);
     }
 
-    public function destroy(DestroyUnitRequest $request, Unit $unit): Response
+    public function destroy(DestroyUnitRequest $request, Unit $unit): Response|JsonResponse
     {
+        if ($unit->users()->exists()) {
+            return response()->json([
+                'message' => 'Unit tidak dapat dihapus karena masih digunakan oleh pengguna.'
+            ], 422);
+        }
+
         $unit->delete();
 
         return response()->noContent();
