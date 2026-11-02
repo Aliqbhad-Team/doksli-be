@@ -30,7 +30,16 @@ class FolderController extends Controller
         $data = $request->validated();
         $user = Auth::user(); // Dapatkan data user yang sedang login
     
-        if ($user->role === 'Admin') {
+        $user->loadMissing('role');
+        $roleName = strtolower($user->role?->name ?? '');
+
+        if ($roleName === 'pengguna') {
+            return response()->json([
+                'message' => 'Hanya Admin dan Pengelola yang dapat membuat folder.'
+            ], 403);
+        }
+
+        if ($roleName === 'admin') {
             if (empty($data['unit_id'])) {
                 return response()->json([
                     'message' => 'The given data was invalid.',
