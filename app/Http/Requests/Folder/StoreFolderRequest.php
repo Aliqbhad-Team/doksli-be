@@ -11,12 +11,19 @@ class StoreFolderRequest extends FormRequest
         return true; 
     }
 
-    public function rules(): array
+    public function rules()
     {
+        
+        $user = $this->user();
+        
+        // Pengecekan role agar lebih aman dari error null
+        $isAdmin = (isset($user->role->name) && $user->role->name === 'Admin') || $user->role === 'Admin';
+
         return [
-            'name'             => ['required', 'string', 'max:150'],
-            'parent_folder_id' => ['nullable', 'string', 'exists:folders,id'],
-            'unit_id'          => ['nullable', 'string', 'exists:units,id'],
+            'name'             => 'required|string|max:255',
+            'parent_folder_id' => 'nullable|uuid|exists:folders,id',
+            // Jika Admin, unit_id wajib diisi dan harus ada di tabel units. Jika Pengelola, bersifat nullable/opsional.
+            'unit_id'          => $isAdmin ? 'required|uuid|exists:units,id' : 'nullable|uuid|exists:units,id',
         ];
     }
 }

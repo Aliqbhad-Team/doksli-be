@@ -9,8 +9,16 @@ class FolderObserver
 {
     public function created(Folder $folder): void
     {
-        // Otomatis mencatat ke audit_logs setiap kali ada folder baru di database
         AuditService::log('CREATE', 'Folder', $folder->id);
     }
 
+    public function updated(Folder $folder): void
+    {
+        AuditService::log('UPDATE', 'Folder', $folder->id);
+    }
+
+    public function deleted(Folder $folder): void
+    {
+        AuditService::log('DELETE', 'Folder', $folder->id);
+    }
 }
