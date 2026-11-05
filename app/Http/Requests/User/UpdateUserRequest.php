@@ -12,7 +12,12 @@ class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('update', $this->route('user')) ?? false;
+        $user = $this->user();
+        if (!$user) return false;
+        
+        $user->loadMissing('role', 'unit');
+        
+        return $user->can('update', $this->route('user'));
     }
 
     protected function prepareForValidation(): void

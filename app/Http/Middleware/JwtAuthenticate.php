@@ -43,6 +43,9 @@ class JwtAuthenticate
         if (! auth()->user()) auth()->setUser($user);
         if (! auth('api')->user()) auth('api')->setUser($user);
 
+        // Load relationship untuk policy
+        $user->loadMissing('role', 'unit');
+
         return $next($request);
     }
 }

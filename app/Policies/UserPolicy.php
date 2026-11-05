@@ -69,7 +69,7 @@ class UserPolicy
         if ($targetRole === 'admin') return false;
 
         if ($actorRole === 'admin') {
-            return in_array($targetRole, ['pengelola', 'pengguna'], true);
+            return true;
         }
 
         if ($actorRole === 'pengelola') {
