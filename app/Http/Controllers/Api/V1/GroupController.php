@@ -8,20 +8,27 @@ use App\Http\Requests\Group\StoreGroupRequest;
 use App\Http\Requests\Group\UpdateGroupRequest;
 use App\Http\Resources\Api\V1\GroupResource;
 use App\Models\Group;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 class GroupController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return GroupResource::collection(
-            Group::query()
-                ->withCount('users')
-                ->orderBy('name')
-                ->paginate(50)
-        );
+        $query = Group::query()->withCount('users');
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', "%{$request->input('search')}%");
+        }
+
+        if ($request->boolean('all')) {
+            return GroupResource::collection($query->orderBy('name')->get());
+        }
+
+        $perPage = (int) $request->input('per_page', 10);
+        return GroupResource::collection($query->orderBy('name')->paginate($perPage));
     }
 
     public function store(StoreGroupRequest $request): JsonResponse

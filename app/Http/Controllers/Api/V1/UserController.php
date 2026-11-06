@@ -13,17 +13,30 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $users = User::query()
-            ->with(['role', 'unit'])
-            ->latest()
-            ->orderByDesc('id')
-            ->paginate(25);
+        $perPage = (int) $request->input('per_page', 10);
+        $search = $request->input('search');
+
+        $query = User::query()->with(['role', 'unit']);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->boolean('all')) {
+            return UserResource::collection($query->latest('created_at')->orderByDesc('id')->get());
+        }
+
+        $users = $query->latest('created_at')->orderByDesc('id')->paginate($perPage);
 
         return UserResource::collection($users);
     }

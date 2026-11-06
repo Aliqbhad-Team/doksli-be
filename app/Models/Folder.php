@@ -48,4 +48,14 @@ class Folder extends Model
     {
         return $this->children()->with('allChildren');
     }
+
+    public function unit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class, 'unit_id');
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class, 'folder_id');
+    }
 }

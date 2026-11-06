@@ -8,20 +8,27 @@ use App\Http\Requests\Unit\StoreUnitRequest;
 use App\Http\Requests\Unit\UpdateUnitRequest;
 use App\Http\Resources\Api\V1\UnitResource;
 use App\Models\Unit;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 class UnitController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return UnitResource::collection(
-            Unit::query()
-                ->withCount('users')
-                ->orderBy('name')
-                ->paginate(50)
-        );
+        $query = Unit::query()->withCount('users');
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', "%{$request->input('search')}%");
+        }
+
+        if ($request->boolean('all')) {
+            return UnitResource::collection($query->orderBy('name')->get());
+        }
+
+        $perPage = (int) $request->input('per_page', 10);
+        return UnitResource::collection($query->orderBy('name')->paginate($perPage));
     }
 
     public function store(StoreUnitRequest $request): JsonResponse

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentVersionController;
@@ -63,6 +64,10 @@ Route::middleware('jwt.auth')->group(function () {
         'folder-permissions' => FolderPermissionController::class,
         'users' => UserController::class,
     ]);
+
+    // Audit Logs
+    Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('audit-logs/filters', [AuditLogController::class, 'filters'])->name('audit-logs.filters');
 
     // Users
     Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
