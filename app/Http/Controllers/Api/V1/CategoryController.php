@@ -8,6 +8,7 @@ use App\Http\Requests\Category\StoreCategoryRequest;
 use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Http\Resources\Api\V1\CategoryResource;
 use App\Models\Category;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -15,9 +16,20 @@ use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return CategoryResource::collection(Category::query()->orderBy('name')->paginate(50));
+        $query = Category::query();
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', "%{$request->input('search')}%");
+        }
+
+        if ($request->boolean('all')) {
+            return CategoryResource::collection($query->orderBy('name')->get());
+        }
+
+        $perPage = (int) $request->input('per_page', 10);
+        return CategoryResource::collection($query->orderBy('name')->paginate($perPage));
     }
 
     public function store(StoreCategoryRequest $request): JsonResponse

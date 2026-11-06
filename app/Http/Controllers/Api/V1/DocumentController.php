@@ -28,7 +28,13 @@ class DocumentController extends Controller
         }
 
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->query('category_id'));
+            $cat = $request->query('category_id');
+            $query->where(function ($q) use ($cat) {
+                $q->where('category_id', $cat)
+                  ->orWhereHas('category', function ($cq) use ($cat) {
+                      $cq->where('name', $cat);
+                  });
+            });
         }
 
         if ($request->filled('owner_id')) {
@@ -37,14 +43,22 @@ class DocumentController extends Controller
 
         if ($request->filled('status')) {
             $query->where('status', $request->query('status'));
+        } elseif (!$request->boolean('include_trash')) {
+            $query->where('status', 'active')->whereNull('deleted_at');
         }
 
         if ($request->filled('search')) {
             $search = $request->query('search');
-            $query->where('name', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhereHas('tags', function ($tq) use ($search) {
+                      $tq->where('name', 'like', "%{$search}%");
+                  });
+            });
         }
 
-        $documents = $query->latest('created_at')->paginate(25);
+        $perPage = (int) $request->input('per_page', 10);
+        $documents = $query->latest('created_at')->paginate($perPage);
 
         return DocumentResource::collection($documents);
     }

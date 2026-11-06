@@ -11,11 +11,27 @@ use App\Http\Requests\Folder\StoreFolderRequest;
 use App\Http\Requests\Folder\UpdateFolderRequest;
 use App\Http\Resources\Api\V1\FolderResource;
 
+use Illuminate\Http\Request;
+
 class FolderController extends Controller
 {
-    // READ: Menampilkan semua folder dengan RECURSIVE QUERY via Service
-    public function index(FolderService $folderService)
+    // READ: Menampilkan folder dengan opsi Server Pagination atau RECURSIVE TREE via Service
+    public function index(FolderService $folderService, Request $request)
     {
+        if ($request->boolean('paginate')) {
+            $perPage = (int) $request->input('per_page', 10);
+            $query = Folder::query()->with('unit')->withCount(['documents as documents_count' => function ($q) {
+                $q->whereNull('deleted_at');
+            }]);
+
+            if ($request->filled('search')) {
+                $query->where('name', 'like', "%{$request->input('search')}%");
+            }
+
+            $paginated = $query->orderBy('name')->paginate($perPage);
+            return FolderResource::collection($paginated);
+        }
+
         $folders = $folderService->getFolderTree();
 
         return response()->json([
