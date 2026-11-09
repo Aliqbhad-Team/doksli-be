@@ -9,8 +9,7 @@ class FolderObserver
 {
     public function created(Folder $folder): void
     {
-        $action = $folder->parent_folder_id ? 'Buat sub-folder' : 'Buat folder';
-        AuditService::log($action, 'Folder', $folder->id, $folder->name);
+        AuditService::log('Buat folder', 'Folder', $folder->id, $folder->name);
     }
 
     public function updated(Folder $folder): void

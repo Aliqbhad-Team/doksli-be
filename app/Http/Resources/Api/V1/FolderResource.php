@@ -21,7 +21,6 @@ class FolderResource extends JsonResource
             'created_at'              => $this->created_at,
             'documents_count'         => (int) ($this->documents_count ?? 0),
             'trashed_documents_count' => (int) ($this->trashed_documents_count ?? 0),
-            'subfolders_count'        => (int) ($this->subfolders_count ?? 0),
         ];
     }
 }

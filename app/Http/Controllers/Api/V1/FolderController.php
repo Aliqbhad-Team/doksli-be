@@ -30,14 +30,7 @@ class FolderController extends Controller
                         $sq->whereNotNull('deleted_at')->orWhere('status', 'trashed');
                     });
                 },
-                'children as subfolders_count',
             ]);
-
-            if ($request->filled('parent_folder_id')) {
-                $query->where('parent_folder_id', $request->input('parent_folder_id'));
-            } elseif ($request->boolean('root_only')) {
-                $query->whereNull('parent_folder_id');
-            }
 
             if ($request->filled('search')) {
                 $query->where('name', 'like', "%{$request->input('search')}%");
@@ -114,38 +107,11 @@ class FolderController extends Controller
         return FolderResource::make($folder);
     }
 
-    // DELETE: Menghapus folder beserta seluruh dokumen dan sub-foldernya (Cascade)
+    // DELETE: Menghapus folder
     public function destroy(Folder $folder)
     {
-        DB::transaction(function () use ($folder) {
-            $this->deleteFolderCascade($folder);
-        });
-
-        return response()->noContent();
-    }
-
-    /**
-     * Hapus folder, seluruh sub-folder dan dokumen di dalamnya secara rekursif.
-     */
-    private function deleteFolderCascade(Folder $folder): void
-    {
-        // 1. Rekursif hapus semua sub-folder anak terlebih dahulu
-        foreach ($folder->children()->get() as $child) {
-            $this->deleteFolderCascade($child);
-        }
-
-        // 2. Hapus semua dokumen di folder ini
-        foreach ($folder->documents()->get() as $doc) {
-            // Hapus file fisik dari storage jika ada
-            foreach ($doc->versions()->get() as $version) {
-                if ($version->file_url && Storage::disk('public')->exists($version->file_url)) {
-                    Storage::disk('public')->delete($version->file_url);
-                }
-            }
-            $doc->delete();
-        }
-
-        // 3. Hapus folder itu sendiri
         $folder->delete();
+        
+        return response()->noContent();
     }
 }
