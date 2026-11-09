@@ -7,10 +7,12 @@ use App\Http\Requests\DocumentVersion\DestroyDocumentVersionRequest;
 use App\Http\Requests\DocumentVersion\StoreDocumentVersionRequest;
 use App\Http\Resources\Api\V1\DocumentVersionResource;
 use App\Models\DocumentVersion;
+use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentVersionController extends Controller
 {
@@ -49,7 +51,7 @@ class DocumentVersionController extends Controller
             $file = $request->file('file');
             $data['checksum'] = hash_file('sha256', $file->getRealPath());
             $data['size_bytes'] = $file->getSize();
-            $path = $file->store('documents/'.$documentId);
+            $path = $file->store('documents/'.$documentId, 'public');
             $data['file_url'] = $path;
             unset($data['file']);
         }
@@ -64,6 +66,33 @@ class DocumentVersionController extends Controller
     public function show(DocumentVersion $documentVersion): DocumentVersionResource
     {
         return DocumentVersionResource::make($documentVersion->load(['uploader', 'document']));
+    }
+
+    /**
+     * Download the file of a specific document version.
+     */
+    public function download(DocumentVersion $documentVersion)
+    {
+        if (empty($documentVersion->file_url)) {
+            return response()->json(['message' => 'File versi tidak ditemukan.'], 404);
+        }
+
+        $path = $documentVersion->file_url;
+        $docName = $documentVersion->document?->name ?? 'Dokumen';
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $downloadName = "{$docName}_v{$documentVersion->version_number}" . ($extension ? '.' . $extension : '');
+
+        AuditService::log('Unduh versi dokumen', 'DocumentVersion', $documentVersion->id, "{$docName} (v{$documentVersion->version_number})");
+
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::disk('public')->download($path, $downloadName);
+        }
+
+        if (Storage::disk('local')->exists($path)) {
+            return Storage::disk('local')->download($path, $downloadName);
+        }
+
+        return response()->json(['message' => 'File fisik tidak ditemukan pada server.'], 404);
     }
 
     public function destroy(DestroyDocumentVersionRequest $request, DocumentVersion $documentVersion): Response

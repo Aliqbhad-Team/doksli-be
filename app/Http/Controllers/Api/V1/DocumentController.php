@@ -11,10 +11,12 @@ use App\Http\Resources\Api\V1\DocumentResource;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Tag;
+use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -94,7 +96,7 @@ class DocumentController extends Controller
         if ($file) {
             $checksum = hash_file('sha256', $file->getRealPath());
             $sizeBytes = $file->getSize();
-            $path = $file->store('documents/' . $document->id);
+            $path = $file->store('documents/' . $document->id, 'public');
 
             DocumentVersion::create([
                 'document_id' => $document->id,
@@ -150,6 +152,33 @@ class DocumentController extends Controller
         $document->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * Download the latest file of a document.
+     */
+    public function download(Document $document)
+    {
+        $version = $document->latestVersion;
+        if (! $version || empty($version->file_url)) {
+            return response()->json(['message' => 'File dokumen tidak ditemukan.'], 404);
+        }
+
+        $path = $version->file_url;
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $downloadName = $document->name . ($extension ? '.' . $extension : '');
+
+        AuditService::log('Unduh dokumen', 'Document', $document->id, $document->name);
+
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::disk('public')->download($path, $downloadName);
+        }
+
+        if (Storage::disk('local')->exists($path)) {
+            return Storage::disk('local')->download($path, $downloadName);
+        }
+
+        return response()->json(['message' => 'File fisik tidak ditemukan pada server.'], 404);
     }
 
     /**

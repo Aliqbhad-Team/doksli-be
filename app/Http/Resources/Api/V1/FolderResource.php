@@ -17,9 +17,11 @@ class FolderResource extends JsonResource
             'unit'             => $this->whenLoaded('unit', function () {
                 return $this->unit ? ['id' => $this->unit->id, 'name' => $this->unit->name] : null;
             }, $this->unit ? ['id' => $this->unit->id, 'name' => $this->unit->name] : null),
-            'created_by'       => $this->created_by,
-            'created_at'       => $this->created_at,
-            'documents_count'  => (int) ($this->documents_count ?? 0),
+            'created_by'              => $this->created_by,
+            'created_at'              => $this->created_at,
+            'documents_count'         => (int) ($this->documents_count ?? 0),
+            'trashed_documents_count' => (int) ($this->trashed_documents_count ?? 0),
+            'subfolders_count'        => (int) ($this->subfolders_count ?? 0),
         ];
     }
 }

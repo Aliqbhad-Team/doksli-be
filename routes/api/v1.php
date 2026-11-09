@@ -34,10 +34,15 @@ Route::get('units', [UnitController::class, 'index'])->name('units.index');
 Route::get('units/{unit}', [UnitController::class, 'show'])->name('units.show');
 Route::get('groups', [GroupController::class, 'index'])->name('groups.index');
 Route::get('groups/{group}', [GroupController::class, 'show'])->name('groups.show');
-Route::apiResource('document-versions', DocumentVersionController::class);
 
 // Protected routes by jwt.auth
 Route::middleware('jwt.auth')->group(function () {
+    // Document download routes
+    Route::get('documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('document-versions/{document_version}/download', [DocumentVersionController::class, 'download'])->name('document-versions.download');
+
+    // Document versions mutating routes
+    Route::apiResource('document-versions', DocumentVersionController::class);
     // Category mutating routes
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::match(['put', 'patch'], 'categories/{category}', [CategoryController::class, 'update'])->name('categories.update');

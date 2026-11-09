@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Services\FolderService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
 use Illuminate\Support\Str;
@@ -18,16 +20,35 @@ class FolderController extends Controller
     // READ: Menampilkan folder dengan opsi Server Pagination atau RECURSIVE TREE via Service
     public function index(FolderService $folderService, Request $request)
     {
-        if ($request->boolean('paginate')) {
-            $perPage = (int) $request->input('per_page', 10);
-            $query = Folder::query()->with('unit')->withCount(['documents as documents_count' => function ($q) {
-                $q->whereNull('deleted_at');
-            }]);
+        if ($request->boolean('paginate') || $request->boolean('all')) {
+            $query = Folder::query()->with('unit')->withCount([
+                'documents as documents_count' => function ($q) {
+                    $q->whereNull('deleted_at')->where('status', 'active');
+                },
+                'documents as trashed_documents_count' => function ($q) {
+                    $q->where(function ($sq) {
+                        $sq->whereNotNull('deleted_at')->orWhere('status', 'trashed');
+                    });
+                },
+                'children as subfolders_count',
+            ]);
+
+            if ($request->filled('parent_folder_id')) {
+                $query->where('parent_folder_id', $request->input('parent_folder_id'));
+            } elseif ($request->boolean('root_only')) {
+                $query->whereNull('parent_folder_id');
+            }
 
             if ($request->filled('search')) {
                 $query->where('name', 'like', "%{$request->input('search')}%");
             }
 
+            if ($request->boolean('all')) {
+                $folders = $query->orderBy('name')->get();
+                return FolderResource::collection($folders);
+            }
+
+            $perPage = (int) $request->input('per_page', 10);
             $paginated = $query->orderBy('name')->paginate($perPage);
             return FolderResource::collection($paginated);
         }
@@ -93,11 +114,38 @@ class FolderController extends Controller
         return FolderResource::make($folder);
     }
 
-    // DELETE: Menghapus folder
+    // DELETE: Menghapus folder beserta seluruh dokumen dan sub-foldernya (Cascade)
     public function destroy(Folder $folder)
     {
-        $folder->delete();
-        
+        DB::transaction(function () use ($folder) {
+            $this->deleteFolderCascade($folder);
+        });
+
         return response()->noContent();
+    }
+
+    /**
+     * Hapus folder, seluruh sub-folder dan dokumen di dalamnya secara rekursif.
+     */
+    private function deleteFolderCascade(Folder $folder): void
+    {
+        // 1. Rekursif hapus semua sub-folder anak terlebih dahulu
+        foreach ($folder->children()->get() as $child) {
+            $this->deleteFolderCascade($child);
+        }
+
+        // 2. Hapus semua dokumen di folder ini
+        foreach ($folder->documents()->get() as $doc) {
+            // Hapus file fisik dari storage jika ada
+            foreach ($doc->versions()->get() as $version) {
+                if ($version->file_url && Storage::disk('public')->exists($version->file_url)) {
+                    Storage::disk('public')->delete($version->file_url);
+                }
+            }
+            $doc->delete();
+        }
+
+        // 3. Hapus folder itu sendiri
+        $folder->delete();
     }
 }

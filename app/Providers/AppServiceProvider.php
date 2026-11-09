@@ -7,7 +7,11 @@ use App\Services\JwtService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 use App\Models\Folder;
+use App\Models\Document;
+use App\Models\DocumentVersion;
 use App\Observers\FolderObserver;
+use App\Observers\DocumentObserver;
+use App\Observers\DocumentVersionObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,5 +28,7 @@ class AppServiceProvider extends ServiceProvider
             return new JwtGuard($provider, $request, $jwt);
         });
         Folder::observe(FolderObserver::class);
+        Document::observe(DocumentObserver::class);
+        DocumentVersion::observe(DocumentVersionObserver::class);
     }
 }

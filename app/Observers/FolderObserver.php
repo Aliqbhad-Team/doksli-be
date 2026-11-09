@@ -9,16 +9,17 @@ class FolderObserver
 {
     public function created(Folder $folder): void
     {
-        AuditService::log('CREATE', 'Folder', $folder->id);
+        $action = $folder->parent_folder_id ? 'Buat sub-folder' : 'Buat folder';
+        AuditService::log($action, 'Folder', $folder->id, $folder->name);
     }
 
     public function updated(Folder $folder): void
     {
-        AuditService::log('UPDATE', 'Folder', $folder->id);
+        AuditService::log('Perbarui folder', 'Folder', $folder->id, $folder->name);
     }
 
-    public function deleted(Folder $folder): void
+    public function deleting(Folder $folder): void
     {
-        AuditService::log('DELETE', 'Folder', $folder->id);
+        AuditService::log('Hapus folder', 'Folder', $folder->id, $folder->name);
     }
 }
