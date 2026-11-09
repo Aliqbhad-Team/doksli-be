@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Folder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class FolderService
 {
@@ -31,5 +33,42 @@ class FolderService
         $bindings = $rootFolderId ? ['root_id' => $rootFolderId] : [];
 
         return DB::select($sql, $bindings);
+    }
+
+    /**
+     * Hapus folder, seluruh anak/subfolder, serta semua file dokumen secara Berulang.
+     */
+    public function deleteFolderRecursive(Folder $folder): void
+    {
+        DB::transaction(function () use ($folder) {
+            $this->recursiveDeleteProcess($folder);
+        });
+    }
+
+    /**
+     * Helper privat untuk eksekusi berulang hapus
+     */
+    private function recursiveDeleteProcess(Folder $folder): void
+    {
+        // 1. Ambil semua subfolder (children)
+        $subfolders = Folder::where('parent_folder_id', $folder->id)->get();
+
+        // 2. Jalankan hapus berulang untuk setiap subfolder lebih dulu (bottom-up)
+        foreach ($subfolders as $subfolder) {
+            $this->recursiveDeleteProcess($subfolder);
+        }
+
+        // 3. Hapus seluruh dokumen dan file fisiknya yang ada di folder ini
+        if ($folder->documents()->exists()) {
+            foreach ($folder->documents as $document) {
+                if ($document->file_path && Storage::exists($document->file_path)) {
+                    Storage::delete($document->file_path);
+                }
+                $document->delete(); // Memicu SoftDeletes / Delete pada Model Document
+            }
+        }
+
+        // 4. Hapus folder ini sendiri (Memicu FolderObserver audit log)
+        $folder->delete();
     }
 }

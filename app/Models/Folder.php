@@ -29,7 +29,7 @@ class Folder extends Model
         'created_at'
     ];
 
-    // --- RELASI SELF-JOIN (REVISI PEMBIMBING) ---
+    // --- RELASI SELF-JOIN ---
 
     // Relasi ke folder induknya (ke atas)
     public function parent(): BelongsTo
