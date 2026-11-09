@@ -10,7 +10,6 @@ use Illuminate\Support\Str;
 use App\Http\Requests\Folder\StoreFolderRequest;
 use App\Http\Requests\Folder\UpdateFolderRequest;
 use App\Http\Resources\Api\V1\FolderResource;
-
 use Illuminate\Http\Request;
 
 class FolderController extends Controller
@@ -39,32 +38,39 @@ class FolderController extends Controller
         ]);
     }
 
-    // CREATE: Menambah folder baru 
+    // CREATE: Menambah folder baru (Mendukung pembuatan didalam Folder Induk)
     public function store(StoreFolderRequest $request)
     {
         $data = $request->validated();
         $user = Auth::user(); 
         
-        // Pengecekan role yang lebih aman (mendukung string 'Admin' atau relasi object)
         $isAdmin = (isset($user->role->name) && $user->role->name === 'Admin') || $user->role === 'Admin';
-    
-        if ($isAdmin) {
-            // Admin: wajib pilih unit_id
-            if (empty($data['unit_id'])) {
+
+        // 1. Jika membuat subfolder (isi parent_folder_id), wariskan unit_id dari folder induk
+        if (!empty($data['parent_folder_id'])) {
+            $parentFolder = Folder::find($data['parent_folder_id']);
+            if ($parentFolder) {
+                $data['unit_id'] = $parentFolder->unit_id;
+            }
+        }
+
+        // 2. Penanganan unit_id jika folder tingkat teratas (root folder)
+        if (empty($data['unit_id'])) {
+            if ($isAdmin) {
+                // Admin: wajib pilih unit_id jika buat root folder
                 return response()->json([
                     'message' => 'The given data was invalid.',
                     'errors'  => ['unit_id' => ['Folder tidak bisa dibuat tanpa unit_id untuk Admin.']]
                 ], 422);
-            }
-        } else {
-            // Pengelola: unit_id otomatis = unit Pengelola (override)
-            $data['unit_id'] = $user->unit_id; 
-            
-            // Validasi darurat jika data unit user ternyata kosong di database
-            if (empty($data['unit_id'])) {
-                return response()->json([
-                    'message' => 'User ini tidak memiliki unit_id yang valid.'
-                ], 403);
+            } else {
+                // Pengelola: unit_id otomatis = unit milik Pengelola
+                $data['unit_id'] = $user->unit_id; 
+                
+                if (empty($data['unit_id'])) {
+                    return response()->json([
+                        'message' => 'User ini tidak memiliki unit_id yang valid.'
+                    ], 403);
+                }
             }
         }
 
@@ -93,11 +99,13 @@ class FolderController extends Controller
         return FolderResource::make($folder);
     }
 
-    // DELETE: Menghapus folder
-    public function destroy(Folder $folder)
+    // DELETE: Menghapus folder secara REKURSIF beserta subfolder & dokumennya
+    public function destroy(Folder $folder, FolderService $folderService)
     {
-        $folder->delete();
+        $folderService->deleteFolderRecursive($folder);
         
-        return response()->noContent();
+        return response()->json([
+            'message' => 'Folder beserta seluruh subfolder dan dokumen di dalamnya berhasil dihapus.'
+        ], 200);
     }
 }
